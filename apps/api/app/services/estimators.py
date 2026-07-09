@@ -7,7 +7,7 @@ import pandas as pd
 from scipy import stats
 
 from app.models.schemas import AssumptionItem, EstimateRequest, EstimateResponse
-from app.services.demo_data import load_demo_frame
+from app.services.demo_data import get_case, load_case_frame
 
 DISCLAIMER = (
     "CausalForge does not promise automatic causality. Estimates depend on "
@@ -15,51 +15,71 @@ DISCLAIMER = (
     "decision support with explicit limitations — not as proof."
 )
 
+SHARED_CAVEATS = [
+    "Observational estimates are only as credible as their identifying assumptions.",
+    "Synthetic demos illustrate method and communication — not real business impact.",
+    "Do not scale an intervention from a single point estimate without design review.",
+    "When the 95% CI includes zero, treat the result as inconclusive under current assumptions.",
+]
 
-def _diff_in_diff(df: pd.DataFrame, treated_region: str, outcome: str) -> tuple[float, float, int, int]:
+
+def _diff_in_diff(
+    df: pd.DataFrame,
+    treated_value: str,
+    outcome: str,
+    unit_col: str,
+    period_col: str,
+) -> tuple[float, float, int, int]:
     if outcome not in df.columns:
         raise ValueError(f"Outcome column '{outcome}' not found in demo dataset")
 
-    treated = df[df["region"] == treated_region]
-    control = df[df["region"] != treated_region]
+    treated = df[df[unit_col].astype(str) == str(treated_value)]
+    control = df[df[unit_col].astype(str) != str(treated_value)]
     if treated.empty or control.empty:
-        raise ValueError("Treated or control group is empty for the selected region")
+        raise ValueError("Treated or control group is empty for the selected unit")
 
-    pre_t = treated.loc[treated["period"] == "pre", outcome].mean()
-    post_t = treated.loc[treated["period"] == "post", outcome].mean()
-    pre_c = control.loc[control["period"] == "pre", outcome].mean()
-    post_c = control.loc[control["period"] == "post", outcome].mean()
+    pre_t = treated.loc[treated[period_col] == "pre", outcome].mean()
+    post_t = treated.loc[treated[period_col] == "post", outcome].mean()
+    pre_c = control.loc[control[period_col] == "pre", outcome].mean()
+    post_c = control.loc[control[period_col] == "post", outcome].mean()
 
     effect = (post_t - pre_t) - (post_c - pre_c)
 
-    # Conservative SE using pooled residual variance of unit-level DiD contributions
     unit_effects = []
-    for region, g in df.groupby("region"):
-        pre = g.loc[g["period"] == "pre", outcome].mean()
-        post = g.loc[g["period"] == "post", outcome].mean()
+    for _, g in df.groupby(unit_col):
+        pre = g.loc[g[period_col] == "pre", outcome].mean()
+        post = g.loc[g[period_col] == "post", outcome].mean()
         unit_effects.append(post - pre)
     unit_effects = np.asarray(unit_effects, dtype=float)
     se = float(np.std(unit_effects, ddof=1) / np.sqrt(max(len(unit_effects), 1)))
     if se == 0 or np.isnan(se):
         se = abs(effect) * 0.15 + 1.0
 
-    n_treated = int((df["region"] == treated_region).sum())
-    n_control = int((df["region"] != treated_region).sum())
+    n_treated = int((df[unit_col].astype(str) == str(treated_value)).sum())
+    n_control = int((df[unit_col].astype(str) != str(treated_value)).sum())
     return float(effect), se, n_treated, n_control
 
 
-def _matching(df: pd.DataFrame, treated_region: str, outcome: str) -> tuple[float, float, int, int]:
+def _matching(
+    df: pd.DataFrame,
+    treated_value: str,
+    outcome: str,
+    unit_col: str,
+    period_col: str,
+    covars: list[str],
+) -> tuple[float, float, int, int]:
     if outcome not in df.columns:
         raise ValueError(f"Outcome column '{outcome}' not found in demo dataset")
+    for c in covars:
+        if c not in df.columns:
+            raise ValueError(f"Covariate '{c}' not found in demo dataset")
 
-    post = df[df["period"] == "post"].copy()
-    treated = post[post["region"] == treated_region]
-    control = post[post["region"] != treated_region]
+    post = df[df[period_col] == "post"].copy()
+    treated = post[post[unit_col].astype(str) == str(treated_value)]
+    control = post[post[unit_col].astype(str) != str(treated_value)]
     if treated.empty or control.empty:
         raise ValueError("Treated or control group is empty for matching")
 
-    # Match on store_size and baseline_traffic (nearest neighbor, 1:1 with replacement)
-    covars = ["store_size", "baseline_traffic"]
     effects = []
     for _, row in treated.iterrows():
         dists = ((control[covars] - row[covars].values) ** 2).sum(axis=1)
@@ -73,10 +93,18 @@ def _matching(df: pd.DataFrame, treated_region: str, outcome: str) -> tuple[floa
 
 
 def run_estimate(payload: EstimateRequest) -> EstimateResponse:
-    df = load_demo_frame()
+    meta = get_case(payload.case_id)
+    df = load_case_frame(payload.case_id)
+
+    outcome = payload.outcome or meta["outcome"]
+    intervention = payload.intervention or meta["intervention"]
+    treated_value = payload.treated_region or meta["treated_region"]
+    unit_col = meta["unit_col"]
+    period_col = meta["period_col"]
+    covars = meta["match_covars"]
 
     if payload.method == "diff_in_diff":
-        effect, se, n_t, n_c = _diff_in_diff(df, payload.treated_region, payload.outcome)
+        effect, se, n_t, n_c = _diff_in_diff(df, treated_value, outcome, unit_col, period_col)
         assumptions = [
             AssumptionItem(
                 id="parallel_trends",
@@ -94,7 +122,7 @@ def run_estimate(payload: EstimateRequest) -> EstimateResponse:
                 id="stable_composition",
                 label="Stable group composition",
                 status="checked",
-                note="Demo panel keeps the same regions pre/post by construction.",
+                note="Demo panel keeps the same units pre/post by construction.",
             ),
         ]
         limitations = [
@@ -104,13 +132,15 @@ def run_estimate(payload: EstimateRequest) -> EstimateResponse:
         ]
         method_label = "Difference-in-Differences (simple)"
     else:
-        effect, se, n_t, n_c = _matching(df, payload.treated_region, payload.outcome)
+        effect, se, n_t, n_c = _matching(
+            df, treated_value, outcome, unit_col, period_col, covars
+        )
         assumptions = [
             AssumptionItem(
                 id="unconfoundedness",
                 label="Conditional unconfoundedness",
                 status="assumed",
-                note="Observed covariates (store_size, baseline_traffic) block confounding paths.",
+                note=f"Observed covariates ({', '.join(covars)}) are assumed to block confounding paths.",
             ),
             AssumptionItem(
                 id="overlap",
@@ -122,7 +152,7 @@ def run_estimate(payload: EstimateRequest) -> EstimateResponse:
                 id="suta",
                 label="SUTVA",
                 status="assumed",
-                note="No interference between regions and one version of treatment.",
+                note="No interference between units and one version of treatment.",
             ),
         ]
         limitations = [
@@ -135,37 +165,48 @@ def run_estimate(payload: EstimateRequest) -> EstimateResponse:
     z = 1.96
     ci_low = effect - z * se
     ci_high = effect + z * se
-    direction = "positive" if effect > 0 else "negative" if effect < 0 else "near-zero"
     crosses_zero = ci_low <= 0 <= ci_high
+    direction = "positive" if effect > 0 else "negative" if effect < 0 else "near-zero"
+    evidence_label: str = "inconclusive" if crosses_zero else "suggestive"
 
     decision_memo = (
-        f"Intervention `{payload.intervention}` on outcome `{payload.outcome}` "
+        f"Case `{payload.case_id}` — intervention `{intervention}` on outcome `{outcome}` "
         f"shows a {direction} estimated effect of {effect:.2f} "
         f"(95% CI [{ci_low:.2f}, {ci_high:.2f}]) via {method_label}. "
     )
     if crosses_zero:
         decision_memo += (
-            "The interval includes zero — evidence is inconclusive under current assumptions. "
-            "Prefer collecting stronger design (RCT / better controls) before acting."
+            "Evidence label: INCONCLUSIVE — the interval includes zero under current assumptions. "
+            "Do not claim impact. Prefer stronger design (RCT / better controls) or more power before acting."
         )
     else:
         decision_memo += (
-            "The interval excludes zero under stated assumptions, but this is not automatic proof. "
-            "Validate parallel trends / balance and review operational costs before scaling."
+            "Evidence label: SUGGESTIVE (not proven) — the interval excludes zero under stated assumptions. "
+            "This is still not automatic proof. Validate assumptions and review costs/risks before scaling."
         )
 
+    caveats = [
+        *SHARED_CAVEATS,
+        f"Case expected signal (by design): {meta['expected_signal']}.",
+        meta["notice"],
+    ]
+
     return EstimateResponse(
+        case_id=payload.case_id,
         method=payload.method,
-        intervention=payload.intervention,
-        outcome=payload.outcome,
+        intervention=intervention,
+        outcome=outcome,
         effect_estimate=round(effect, 4),
         std_error=round(se, 4),
         ci_low=round(ci_low, 4),
         ci_high=round(ci_high, 4),
         n_treated=n_t,
         n_control=n_c,
+        crosses_zero=crosses_zero,
+        evidence_label=evidence_label,  # type: ignore[arg-type]
         assumptions=assumptions,
         limitations=limitations,
         decision_memo=decision_memo,
+        caveats=caveats,
         disclaimer=DISCLAIMER,
     )

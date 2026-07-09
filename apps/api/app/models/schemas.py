@@ -6,13 +6,14 @@ from pydantic import BaseModel, Field
 
 
 class EstimateRequest(BaseModel):
+    case_id: Literal["promo_campaign", "support_sla"] = "promo_campaign"
     method: Literal["diff_in_diff", "matching"] = "diff_in_diff"
-    outcome: str = Field(default="revenue", description="Outcome metric column")
-    intervention: str = Field(
-        default="promo_campaign",
-        description="Intervention / treatment label for the causal question",
+    outcome: str | None = Field(default=None, description="Outcome metric column (defaults from case)")
+    intervention: str | None = Field(default=None, description="Intervention label (defaults from case)")
+    treated_region: str | None = Field(
+        default=None,
+        description="Treated unit/group value (defaults from case)",
     )
-    treated_region: str = Field(default="South", description="Treated unit/region in demo data")
 
 
 class AssumptionItem(BaseModel):
@@ -23,6 +24,7 @@ class AssumptionItem(BaseModel):
 
 
 class EstimateResponse(BaseModel):
+    case_id: str
     method: str
     intervention: str
     outcome: str
@@ -32,7 +34,10 @@ class EstimateResponse(BaseModel):
     ci_high: float
     n_treated: int
     n_control: int
+    crosses_zero: bool
+    evidence_label: Literal["suggestive", "inconclusive", "not_estimable"]
     assumptions: list[AssumptionItem]
     limitations: list[str]
     decision_memo: str
+    caveats: list[str]
     disclaimer: str

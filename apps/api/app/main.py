@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,12 +14,25 @@ app = FastAPI(
     version="0.1.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+_raw = os.getenv("CORS_ORIGINS", "")
+_origins = [o.strip() for o in _raw.split(",") if o.strip()] if _raw else []
+_origins.extend(
+    [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-    ],
+    ]
+)
+# Deduplicate while preserving order
+_seen: set[str] = set()
+allow_origins: list[str] = []
+for o in _origins:
+    if o not in _seen:
+        _seen.add(o)
+        allow_origins.append(o)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
