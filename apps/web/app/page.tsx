@@ -1,51 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CasePicker } from "@/components/CasePicker";
+import { DecisionMemo } from "@/components/DecisionMemo";
+import { EvidencePanel } from "@/components/EvidencePanel";
+import { StepNav } from "@/components/StepNav";
 import { fetchDemo, getApiUrl, runEstimate } from "@/lib/api";
+import { FALLBACK_CASES, type StepId } from "@/lib/fallback-cases";
 import type { CaseSummary, DemoSummary, EstimateResponse } from "@/types";
-
-const STEPS = [
-  { id: "case", label: "1. Caso" },
-  { id: "question", label: "2. Pergunta" },
-  { id: "assumptions", label: "3. Hipóteses" },
-  { id: "estimate", label: "4. Evidência" },
-  { id: "memo", label: "5. Memo" },
-] as const;
-
-type StepId = (typeof STEPS)[number]["id"];
-
-const FALLBACK_CASES: CaseSummary[] = [
-  {
-    id: "promo_campaign",
-    title: "Promo campaign (retail panel)",
-    title_pt: "Campanha promocional (painel de varejo)",
-    description: "",
-    description_pt: "",
-    recommended_method: "diff_in_diff",
-    outcome: "revenue",
-    intervention: "promo_campaign",
-    treated_region: "South",
-    story: "",
-    story_pt: "Growth lançou uma promoção regional.",
-    expected_signal: "positive_clear",
-    notice: "Synthetic data only.",
-  },
-  {
-    id: "support_sla",
-    title: "Support SLA coaching",
-    title_pt: "Coaching de SLA de atendimento",
-    description: "",
-    description_pt: "",
-    recommended_method: "matching",
-    outcome: "resolution_hours",
-    intervention: "sla_coaching",
-    treated_region: "coached",
-    story: "",
-    story_pt: "Ops treinou metade dos agentes em SLA.",
-    expected_signal: "inconclusive_likely",
-    notice: "Synthetic data only.",
-  },
-];
 
 export default function HomePage() {
   const [step, setStep] = useState<StepId>("case");
@@ -54,23 +16,56 @@ export default function HomePage() {
   const [cases, setCases] = useState<CaseSummary[]>(FALLBACK_CASES);
   const [method, setMethod] = useState<"diff_in_diff" | "matching">("diff_in_diff");
   const [result, setResult] = useState<EstimateResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingCase, setLoadingCase] = useState(true);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiOnline, setApiOnline] = useState(true);
 
   const loadCase = useCallback(async (id: "promo_campaign" | "support_sla") => {
     setError(null);
     setResult(null);
+    setLoadingCase(true);
     try {
       const data = await fetchDemo(id);
       setDemo(data);
       if (data.cases?.length) setCases(data.cases);
       setMethod(data.recommended_method);
+      setApiOnline(true);
     } catch (err) {
+      setApiOnline(false);
+      const fallback = FALLBACK_CASES.find((c) => c.id === id) ?? FALLBACK_CASES[0];
+      setCases(FALLBACK_CASES);
+      setDemo({
+        id: fallback.id,
+        name: fallback.id,
+        title: fallback.title,
+        title_pt: fallback.title_pt,
+        description: fallback.description,
+        description_pt: fallback.description_pt,
+        story: fallback.story,
+        story_pt: fallback.story_pt,
+        rows: 0,
+        columns: [],
+        regions: [fallback.treated_region],
+        periods: ["pre", "post"],
+        treatment_rate: 0,
+        outcome: fallback.outcome,
+        intervention: fallback.intervention,
+        treated_region: fallback.treated_region,
+        recommended_method: fallback.recommended_method,
+        expected_signal: fallback.expected_signal,
+        path: "",
+        notice: fallback.notice,
+        cases: FALLBACK_CASES,
+      });
+      setMethod(fallback.recommended_method);
       setError(
         err instanceof Error
-          ? `${err.message} (API: ${getApiUrl()})`
-          : "Failed to load demo",
+          ? `API indisponível (${getApiUrl()}): ${err.message}. Você pode explorar a jornada; a estimativa exige a API.`
+          : "API indisponível",
       );
+    } finally {
+      setLoadingCase(false);
     }
   }, []);
 
@@ -84,19 +79,21 @@ export default function HomePage() {
   );
 
   async function onEstimate() {
-    setLoading(true);
+    setLoadingEstimate(true);
     setError(null);
     try {
-      const data = await runEstimate({
-        case_id: caseId,
-        method,
-      });
+      const data = await runEstimate({ case_id: caseId, method });
       setResult(data);
+      setApiOnline(true);
       setStep("memo");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Estimate failed");
+      setError(
+        err instanceof Error
+          ? `Falha ao estimar: ${err.message}. Confirme que a API está no ar (${getApiUrl()}).`
+          : "Estimate failed",
+      );
     } finally {
-      setLoading(false);
+      setLoadingEstimate(false);
     }
   }
 
@@ -106,7 +103,7 @@ export default function HomePage() {
   }
 
   return (
-    <main>
+    <main id="conteudo-principal">
       <section className="hero">
         <div className="brand">CausalForge</div>
         <h1>Demo mínima de inferência causal responsável</h1>
@@ -114,65 +111,36 @@ export default function HomePage() {
           Escolha um caso sintético, declare hipóteses, estime com Diff-in-Diff ou matching e
           leia um decision memo com caveats — sem prometer causalidade automática.
         </p>
-        <div className="notice">
+        <div className="notice" role="note">
           <strong>Responsible Causal Notice:</strong> estimativas observacionais dependem de
           pressupostos. Resultados são <em>suggestive</em> ou <em>inconclusive</em> sob
           hipóteses declaradas — nunca “prova” de impacto.
         </div>
+        {!apiOnline ? (
+          <div className="banner-warn" role="status">
+            Modo degradado: API offline. Navegue pelos passos; rode a API local ou use o deploy
+            para estimar.
+          </div>
+        ) : null}
       </section>
 
-      <nav className="steps" aria-label="Jornada causal">
-        {STEPS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className={`step ${step === s.id ? "active" : ""}`}
-            onClick={() => setStep(s.id)}
-          >
-            {s.label}
-          </button>
-        ))}
-      </nav>
+      <StepNav step={step} onChange={setStep} />
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       {step === "case" ? (
-        <section className="grid">
-          {cases.map((c) => (
-            <article
-              key={c.id}
-              className={`panel clickable ${caseId === c.id ? "selected" : ""}`}
-              onClick={() => selectCase(c.id as "promo_campaign" | "support_sla")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  selectCase(c.id as "promo_campaign" | "support_sla");
-                }
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              <h2>{c.title_pt}</h2>
-              <p className="muted">{c.story_pt || c.description_pt}</p>
-              <p className="muted">
-                Método sugerido:{" "}
-                <strong>
-                  {c.recommended_method === "diff_in_diff" ? "Diff-in-Diff" : "Matching"}
-                </strong>
-                {" · "}
-                sinal esperado: <code>{c.expected_signal}</code>
-              </p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  selectCase(c.id as "promo_campaign" | "support_sla");
-                }}
-              >
-                Usar este caso
-              </button>
-            </article>
-          ))}
-        </section>
+        loadingCase ? (
+          <div className="skeleton-grid" aria-busy="true" aria-label="Carregando casos">
+            <div className="skeleton panel" />
+            <div className="skeleton panel" />
+          </div>
+        ) : (
+          <CasePicker cases={cases} selectedId={caseId} onSelect={selectCase} />
+        )
       ) : null}
 
       {step === "question" && demo ? (
@@ -191,8 +159,10 @@ export default function HomePage() {
                 <strong>Unidade tratada:</strong> {demo.treated_region}
               </li>
               <li>
-                <strong>N:</strong> {demo.rows} linhas · {demo.regions.length} unidades · períodos{" "}
-                {demo.periods.join(" / ")}
+                <strong>N:</strong>{" "}
+                {demo.rows > 0
+                  ? `${demo.rows} linhas · ${demo.regions.length} unidades · períodos ${demo.periods.join(" / ")}`
+                  : "carregue a API para ver o volume do seed"}
               </li>
             </ul>
             <button type="button" onClick={() => setStep("assumptions")}>
@@ -202,7 +172,7 @@ export default function HomePage() {
           <article className="panel">
             <h2>Dataset sintético</h2>
             <p className="muted">{demo.description_pt}</p>
-            <p className="kpi">{demo.rows}</p>
+            {demo.rows > 0 ? <p className="kpi">{demo.rows}</p> : <div className="skeleton line" />}
             <p className="muted">{demo.notice}</p>
           </article>
         </section>
@@ -217,9 +187,10 @@ export default function HomePage() {
               padrão do MVP para o método escolhido.
             </p>
             <div className="controls">
-              <label>
+              <label htmlFor="method-assumptions">
                 Método
                 <select
+                  id="method-assumptions"
                   value={method}
                   onChange={(e) => setMethod(e.target.value as "diff_in_diff" | "matching")}
                 >
@@ -248,7 +219,7 @@ export default function HomePage() {
               <ul className="list">
                 <li>
                   <span className="badge assumed">assumed</span>
-                  <strong>Unconfoundedness</strong> — covariáveis observadas bloqueiam
+                  <strong>Unconfoundedness</strong> — covariáveis observadas (z-scored) bloqueiam
                   confundimento.
                 </li>
                 <li>
@@ -271,7 +242,9 @@ export default function HomePage() {
               <li>Não é causalidade automática com um clique.</li>
               <li>Não substitui RCT quando o desenho exige.</li>
               <li>Não é recomendação operacional sobre pessoas.</li>
-              <li>Caso atual: <strong>{selectedCase.title_pt}</strong></li>
+              <li>
+                Caso atual: <strong>{selectedCase.title_pt}</strong>
+              </li>
             </ul>
           </article>
         </section>
@@ -280,9 +253,10 @@ export default function HomePage() {
       {step === "estimate" ? (
         <section>
           <div className="controls">
-            <label>
+            <label htmlFor="method-estimate">
               Método
               <select
+                id="method-estimate"
                 value={method}
                 onChange={(e) => setMethod(e.target.value as "diff_in_diff" | "matching")}
               >
@@ -290,44 +264,23 @@ export default function HomePage() {
                 <option value="matching">Matching (nearest neighbor)</option>
               </select>
             </label>
-            <button type="button" onClick={onEstimate} disabled={loading}>
-              {loading ? "Estimando…" : "Estimar impacto"}
+            <button type="button" onClick={onEstimate} disabled={loadingEstimate || !apiOnline}>
+              {loadingEstimate ? "Estimando…" : "Estimar impacto"}
             </button>
           </div>
 
-          {result ? (
-            <section className="grid">
-              <article className="panel">
-                <h2>Effect estimator</h2>
-                <p className={`evidence ${result.evidence_label}`}>
-                  {result.evidence_label === "inconclusive" ? "INCONCLUSIVE" : "SUGGESTIVE"}
-                </p>
-                <p className="kpi">{result.effect_estimate.toFixed(2)}</p>
-                <p className="muted">
-                  SE {result.std_error.toFixed(2)} · 95% CI [{result.ci_low.toFixed(2)},{" "}
-                  {result.ci_high.toFixed(2)}]
-                  {result.crosses_zero ? " · inclui zero" : " · exclui zero"}
-                </p>
-                <p className="muted">
-                  n treated={result.n_treated} · n control={result.n_control} · {result.method}
-                </p>
-              </article>
-              <article className="panel">
-                <h2>Assumption checklist (pós-estimativa)</h2>
-                <ul className="list">
-                  {result.assumptions.map((a) => (
-                    <li key={a.id}>
-                      <span className={`badge ${a.status}`}>{a.status}</span>
-                      <strong>{a.label}</strong> — {a.note}
-                    </li>
-                  ))}
-                </ul>
-                <button type="button" onClick={() => setStep("memo")}>
-                  Abrir decision memo →
-                </button>
-              </article>
-            </section>
-          ) : (
+          {loadingEstimate ? (
+            <div className="skeleton-grid" aria-busy="true">
+              <div className="skeleton panel" />
+              <div className="skeleton panel" />
+            </div>
+          ) : null}
+
+          {!loadingEstimate && result ? (
+            <EvidencePanel result={result} onOpenMemo={() => setStep("memo")} />
+          ) : null}
+
+          {!loadingEstimate && !result ? (
             <article className="panel">
               <h2>Pronto para estimar</h2>
               <p className="muted">
@@ -336,51 +289,13 @@ export default function HomePage() {
                 número só faz sentido junto com hipóteses e caveats.
               </p>
             </article>
-          )}
+          ) : null}
         </section>
       ) : null}
 
       {step === "memo" ? (
         result ? (
-          <section className="grid">
-            <article className="panel wide">
-              <h2>Decision memo</h2>
-              <p className={`evidence ${result.evidence_label}`}>
-                {result.evidence_label === "inconclusive" ? "INCONCLUSIVE" : "SUGGESTIVE — not proven"}
-              </p>
-              <p className="muted">{result.decision_memo}</p>
-            </article>
-            <article className="panel">
-              <h2>Limitations</h2>
-              <ul className="list">
-                {result.limitations.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </article>
-            <article className="panel">
-              <h2>Caveats</h2>
-              <ul className="list">
-                {result.caveats.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <p className="muted" style={{ marginTop: "0.8rem" }}>
-                {result.disclaimer}
-              </p>
-            </article>
-            <article className="panel">
-              <h2>Próximo passo responsável</h2>
-              <ul className="list">
-                <li>Se INCONCLUSIVE: não escale; melhore desenho ou poder.</li>
-                <li>Se SUGGESTIVE: valide parallel trends / balance antes de agir.</li>
-                <li>Documente hipóteses e custo de erro falso-positivo.</li>
-              </ul>
-              <button type="button" onClick={() => setStep("case")}>
-                Trocar de caso
-              </button>
-            </article>
-          </section>
+          <DecisionMemo result={result} onSwitchCase={() => setStep("case")} />
         ) : (
           <article className="panel">
             <h2>Memo ainda vazio</h2>

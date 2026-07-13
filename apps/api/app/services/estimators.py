@@ -23,6 +23,14 @@ SHARED_CAVEATS = [
 ]
 
 
+def _standardize(frame: pd.DataFrame) -> pd.DataFrame:
+    """Column-wise z-score (population std). Used so NN matching is scale-invariant."""
+    values = frame.astype(float)
+    mean = values.mean(axis=0)
+    std = values.std(axis=0, ddof=0).replace(0, 1.0)
+    return (values - mean) / std
+
+
 def _diff_in_diff(
     df: pd.DataFrame,
     treated_value: str,
@@ -45,13 +53,21 @@ def _diff_in_diff(
 
     effect = (post_t - pre_t) - (post_c - pre_c)
 
-    unit_effects = []
-    for _, g in df.groupby(unit_col):
+    # Prefer finer panel ids for SE when available (store/agent), else treatment unit
+    se_group = "unit_id" if "unit_id" in df.columns else (
+        "agent_id" if "agent_id" in df.columns else unit_col
+    )
+    unit_effects: list[float] = []
+    for _, g in df.groupby(se_group):
         pre = g.loc[g[period_col] == "pre", outcome].mean()
         post = g.loc[g[period_col] == "post", outcome].mean()
-        unit_effects.append(post - pre)
-    unit_effects = np.asarray(unit_effects, dtype=float)
-    se = float(np.std(unit_effects, ddof=1) / np.sqrt(max(len(unit_effects), 1)))
+        unit_effects.append(float(post - pre))
+
+    unit_effects_arr = np.asarray(unit_effects, dtype=float)
+    if len(unit_effects_arr) >= 2:
+        se = float(np.std(unit_effects_arr, ddof=1) / np.sqrt(len(unit_effects_arr)))
+    else:
+        se = abs(effect) * 0.15 + 1.0
     if se == 0 or np.isnan(se):
         se = abs(effect) * 0.15 + 1.0
 
@@ -75,16 +91,21 @@ def _matching(
             raise ValueError(f"Covariate '{c}' not found in demo dataset")
 
     post = df[df[period_col] == "post"].copy()
-    treated = post[post[unit_col].astype(str) == str(treated_value)]
-    control = post[post[unit_col].astype(str) != str(treated_value)]
+    treated = post[post[unit_col].astype(str) == str(treated_value)].copy()
+    control = post[post[unit_col].astype(str) != str(treated_value)].copy()
     if treated.empty or control.empty:
         raise ValueError("Treated or control group is empty for matching")
 
-    effects = []
-    for _, row in treated.iterrows():
-        dists = ((control[covars] - row[covars].values) ** 2).sum(axis=1)
-        match = control.loc[dists.idxmin()]
-        effects.append(float(row[outcome] - match[outcome]))
+    # Fit standardization on pooled post sample, then score both arms
+    pooled = _standardize(pd.concat([treated[covars], control[covars]], axis=0))
+    treated_z = pooled.loc[treated.index]
+    control_z = pooled.loc[control.index]
+
+    effects: list[float] = []
+    for idx, row in treated_z.iterrows():
+        dists = ((control_z - row.values) ** 2).sum(axis=1)
+        match_idx = dists.idxmin()
+        effects.append(float(treated.loc[idx, outcome] - control.loc[match_idx, outcome]))
 
     effects_arr = np.asarray(effects, dtype=float)
     effect = float(effects_arr.mean())
@@ -130,6 +151,11 @@ def run_estimate(payload: EstimateRequest) -> EstimateResponse:
             "Simple two-period DiD; no covariates, clustered SE or event-study diagnostics yet.",
             "Effect is an ATT under stated assumptions, not a universal causal guarantee.",
         ]
+        if unit_col in {"group"} and df[unit_col].nunique() <= 2:
+            limitations.append(
+                "With only two treatment arms at the grouping level, DiD precision is fragile — "
+                "prefer matching or a finer panel for this case."
+            )
         method_label = "Difference-in-Differences (simple)"
     else:
         effect, se, n_t, n_c = _matching(
@@ -149,7 +175,7 @@ def run_estimate(payload: EstimateRequest) -> EstimateResponse:
                 note="MVP matching does not yet report propensity overlap diagnostics.",
             ),
             AssumptionItem(
-                id="suta",
+                id="sutva",
                 label="SUTVA",
                 status="assumed",
                 note="No interference between units and one version of treatment.",
@@ -157,10 +183,10 @@ def run_estimate(payload: EstimateRequest) -> EstimateResponse:
         ]
         limitations = [
             "Nearest-neighbor matching is basic; Phase 2 adds propensity scores and balance tables.",
-            "Matching on few covariates — residual confounding remains possible.",
+            "Covariates are z-scored before distance, but residual confounding remains possible.",
             "Results are illustrative on synthetic data and must not be over-interpreted.",
         ]
-        method_label = "Nearest-neighbor matching (basic)"
+        method_label = "Nearest-neighbor matching (basic, standardized covariates)"
 
     z = 1.96
     ci_low = effect - z * se

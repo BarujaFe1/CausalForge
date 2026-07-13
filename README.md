@@ -3,26 +3,32 @@
 
   <h1>CausalForge</h1>
 
-  <p><strong>Laboratório de inferência causal aplicada para avaliar intervenções de negócio com método, incerteza e limites declarados.</strong></p>
-  <p><strong>Applied causal inference lab to evaluate business interventions with method, uncertainty and declared limitations.</strong></p>
+  <p><strong>A intervenção gerou impacto — ou só pareceu?</strong></p>
+  <p>
+    Laboratório de inferência causal responsável: Diff-in-Diff, matching,
+    incerteza e decision memos com limitações declaradas.
+  </p>
+  <p>
+    <em>Responsible causal inference lab for business interventions —
+    estimates with assumptions, uncertainty and explicit limits. No automatic causality.</em>
+  </p>
 
   <p>
-    <a href="#1-visão-geral--overview">PT-BR / English Overview</a> •
-    <a href="#-product-preview">Preview</a> •
-    <a href="#-screenshots">Screenshots</a> •
-    <a href="#️-stack--tecnologias">Stack</a> •
-    <a href="#-arquitetura--architecture">Architecture</a> •
-    <a href="#-quick-start--início-rápido">Quick Start</a> •
-    <a href="#-autor--author">Author</a>
+    <a href="https://causalforge-rose.vercel.app">Live demo</a> ·
+    <a href="#problema">Problema</a> ·
+    <a href="#solução">Solução</a> ·
+    <a href="#arquitetura">Arquitetura</a> ·
+    <a href="#quick-start">Quick Start</a> ·
+    <a href="#o-que-este-projeto-demonstra">Portfolio</a>
   </p>
 
   <p>
     <img alt="Next.js" src="https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=nextdotjs" />
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-React-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-    <img alt="Python" src="https://img.shields.io/badge/Python-Analytics-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-    <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-API-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+    <img alt="Python" src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+    <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
     <img alt="SciPy" src="https://img.shields.io/badge/SciPy-Causal%20Estimates-8CAAE6?style=for-the-badge&logo=scipy&logoColor=white" />
-    <img alt="Responsible Causal" src="https://img.shields.io/badge/Responsible-Causal%20Inference-22C55E?style=for-the-badge" />
+    <img alt="Responsible" src="https://img.shields.io/badge/Responsible-Causal%20Inference-22C55E?style=for-the-badge" />
   </p>
 </div>
 
@@ -32,439 +38,243 @@
 
 ---
 
-## 1. Visão Geral / Overview
+## Status
 
-O **CausalForge** é um laboratório de inferência causal aplicada para avaliar intervenções de negócio: campanhas, mudanças operacionais, políticas, preço, atendimento ou produto.
-
-Ele transforma a pergunta “a intervenção gerou impacto ou só pareceu?” em um fluxo rastreável de **pergunta causal, hipóteses, método, evidência, incerteza, risco e decisão**. Em vez de confundir correlação com impacto, o produto estima efeitos com pressupostos explícitos e limitações declaradas.
-
-O projeto foi desenvolvido por **Felipe Alirio Baruja** como peça de portfólio que amplia o StatLab: sai do A/B didático para causalidade aplicada com dados observacionais, storytelling e decisão.
-
-> **Responsible Causal Notice**  
-> O CausalForge foi criado para avaliação analítica de intervenções com hipóteses e limites explícitos. Ele **não promete causalidade automática** e **não deve** ser usado como prova mágica de impacto nem para decisões automatizadas sobre indivíduos.
-
----
-
-## ✨ Product Preview
-
-<p align="center">
-  <img src="./assets/screenshots/01-causal-question-builder.png" alt="CausalForge Causal Question Builder" width="100%" />
-</p>
-
-O CausalForge apresenta uma experiência de laboratório premium com jornada guiada: pergunta causal, checklist de hipóteses, estimador de efeito, painel de incerteza, decision memo e relatório executivo.
+| Item | Estado |
+|---|---|
+| MVP demo | **Live** — [causalforge-rose.vercel.app](https://causalforge-rose.vercel.app) |
+| API | [causalforge-api.vercel.app](https://causalforge-api.vercel.app) |
+| CI | GitHub Actions (pytest, ruff, typecheck, lint, build) |
+| Dados | Sintéticos apenas (sem PII) |
+| Promessa | **Não** oferece causalidade automática |
 
 ---
 
-## 2. Por que este projeto importa? / Why this project matters
+## Problema
 
-* **Correlação não é impacto:** Muitas análises de negócio confundem movimento de métrica com efeito causal da intervenção.
-* **Decisões precisam de método:** Diff-in-Diff e matching básicos tornam o raciocínio contrafactual explícito, mesmo no MVP.
-* **Incerteza é parte do produto:** Intervalos, pressupostos e limitações entram na interface — não ficam escondidos no rodapé de um notebook.
-* **Responsabilidade analítica:** O produto comunica o que pode e o que não pode ser concluído a partir dos dados observacionais.
+Times de produto, growth e operações frequentemente:
 
----
+- confudem **correlação** com **impacto**;
+- avaliam campanhas só com antes/depois;
+- omitem hipóteses identificadoras;
+- escondem incerteza e limites no rodapé de um notebook.
 
-## 🧠 O diferencial do CausalForge / What makes CausalForge different
-
-### Português
-O CausalForge não é apenas um dashboard de métricas. Ele combina pergunta causal, checklist de hipóteses, estimadores transparentes e comunicação executiva em uma experiência navegável.
-
-Ele mostra não apenas o efeito pontual, mas também:
-- quais pressupostos sustentam a identificação;
-- quão larga é a incerteza;
-- quais limitações restringem a interpretação;
-- o que um gestor pode decidir com responsabilidade;
-- onde o desenho ainda é frágil e precisa de melhor evidência.
-
-### English
-CausalForge is not just a metrics dashboard. It combines a causal question, assumption checklist, transparent estimators and executive communication into one navigable experience.
-
-It shows not only a point estimate, but also:
-- which assumptions support identification;
-- how wide the uncertainty is;
-- which limitations restrict interpretation;
-- what a manager can responsibly decide;
-- where the design is still fragile and needs stronger evidence.
+A dor concreta: decisões caras em cima de evidência frágil.
 
 ---
 
-## 🎯 Problema que resolve / The problem it solves
+## Solução
 
-Em fluxos reais de produto, growth e operações, decisões costumam ser tomadas com:
-- métricas que sobem sem contrafactual claro;
-- campanhas avaliadas só por antes/depois;
-- análises sem hipóteses declaradas;
-- relatórios que omitem incerteza e limites;
-- risco de tratar correlação como prova de impacto.
-
-O **CausalForge** cria uma camada organizada entre a intervenção observada e a decisão analítica final.
-
----
-
-## 🧩 Proposta / Analytical Pipeline
-
-O CausalForge processa um dataset sintético de operação (e, no roadmap, upload opcional) e entrega uma visão estruturada do efeito estimado:
-
-```txt
-Causal Question / Intervention
-  ↓
-Assumption Checklist
-  ↓
-Method Selection (Diff-in-Diff | Matching)
-  ↓
-Effect Estimation (ATT + SE)
-  ↓
-Uncertainty Panel (95% CI)
-  ↓
-Decision Memo + Limitations
-  ↓
-Executive Impact Report
-```
-
----
-
-## 📸 Screenshots
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="./assets/screenshots/01-causal-question-builder.png" alt="Causal Question Builder" />
-      <br />
-      <sub><strong>Causal Question Builder</strong> — intervention, outcome, population and timing made explicit.</sub>
-    </td>
-    <td width="50%">
-      <img src="./assets/screenshots/02-assumption-checklist.png" alt="Assumption Checklist" />
-      <br />
-      <sub><strong>Assumption Checklist</strong> — parallel trends, unconfoundedness, overlap and SUTVA status.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="./assets/screenshots/03-effect-estimator.png" alt="Effect Estimator" />
-      <br />
-      <sub><strong>Effect Estimator</strong> — ATT point estimate with standard error and sample sizes.</sub>
-    </td>
-    <td width="50%">
-      <img src="./assets/screenshots/04-uncertainty-panel.png" alt="Uncertainty Panel" />
-      <br />
-      <sub><strong>Uncertainty Panel</strong> — 95% CI interpretation and risk of overclaiming impact.</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="./assets/screenshots/05-decision-memo.png" alt="Decision Memo" />
-      <br />
-      <sub><strong>Decision Memo</strong> — executive summary linking evidence to a responsible next action.</sub>
-    </td>
-    <td width="50%">
-      <img src="./assets/screenshots/08-executive-report.png" alt="Executive Report" />
-      <br />
-      <sub><strong>Executive Report</strong> — impact narrative with methodology and declared limitations.</sub>
-    </td>
-  </tr>
-</table>
-
----
-
-## 📄 Executive Report
-
-<p align="center">
-  <img src="./assets/screenshots/08-executive-report.png" alt="CausalForge Executive Report" width="70%" />
-</p>
-
-O relatório executivo consolida pergunta causal, método, efeito, intervalo de confiança, checklist de hipóteses, limitações e decision memo em um artefato pronto para stakeholders.
-
----
-
-## 📌 Estudo de Caso / Case Study
-
-### 📌 Estudo de Caso: Campanha Promocional em Painel Operacional Sintético
-O dataset demo simula um painel de varejo com **80 linhas**, **5 regiões**, períodos **pre/post** e uma campanha promocional aplicada à região **South** no pós. O outcome é `revenue`; covariáveis incluem `store_size` e `baseline_traffic`.
-
-O estimador Diff-in-Diff recupera um ATT próximo do efeito gerado nos dados sintéticos (~+35), enquanto o matching básico oferece uma segunda leitura sob unconfoundedness condicional. Em ambos os casos, o produto exibe CI, pressupostos e limitações — nunca uma “prova automática”.
-
-### 📌 Case Study: Synthetic Promo Campaign Panel
-The demo dataset simulates a retail panel with **80 rows**, **5 regions**, **pre/post** periods and a promo campaign applied to the **South** region in the post period. The outcome is `revenue`; covariates include `store_size` and `baseline_traffic`.
-
-Diff-in-Diff recovers an ATT close to the synthetic data-generating effect (~+35), while basic matching provides a second reading under conditional unconfoundedness. Both paths surface CI, assumptions and limitations — never an “automatic proof”.
-
----
-
-## 🧭 Visual Story / Jornada Analítica
-
-A experiência do CausalForge foi pensada como uma jornada causal guiada:
-```txt
-1. Definir a pergunta causal e a intervenção
-2. Carregar o dataset sintético de operação (ou upload opcional no roadmap)
-3. Revisar o checklist de hipóteses identificadoras
-4. Escolher Diff-in-Diff simples ou matching básico
-5. Estimar ATT com erro-padrão e intervalo de confiança
-6. Ler o painel de incerteza e o risco de overclaim
-7. Gerar o decision memo executivo
-8. Exportar / apresentar o relatório de impacto com limitações
-```
-
----
-
-## ⚙️ Funcionalidades Principais / Core Features
-
-### Causal Question Builder
-Estrutura a intervenção, o outcome, a unidade tratada e o timing antes de qualquer estimativa.
-
-### Assumption Checklist
-Torna explícitos pressupostos como parallel trends, no anticipation, unconfoundedness, overlap e SUTVA.
-
-### Effect Estimator
-Calcula ATT via Diff-in-Diff simples ou matching nearest-neighbor básico sobre o dataset demo.
-
-### Uncertainty Panel
-Exibe erro-padrão e intervalo de confiança de 95%, com interpretação cuidadosa quando o intervalo cruza zero.
-
-### Decision Memo
-Resume evidência, risco e próxima ação responsável para gestores de produto, growth e operações.
-
-### Limitations & Responsible Use
-Cada resultado carrega limitações declaradas e um disclaimer contra causalidade automática.
-
----
-
-## 🛠️ Stack / Tecnologias
-
-### Frontend
-- **Framework:** Next.js 15 (App Router) & React 19
-- **Linguagem:** TypeScript
-- **UI:** CSS moderno com jornada de laboratório
-- **Gráficos (roadmap/UI):** Recharts
-- **Ícones:** Lucide Icons
-
-### Backend
-- **Framework API:** FastAPI & Uvicorn (Python 3.12)
-- **Modelagem & Validação:** Pydantic v2
-- **Processamento de Dados:** Pandas
-- **Estimação:** SciPy, statsmodels, scikit-learn
-- **Suite de Testes:** Pytest
-
----
-
-## 🧱 Arquitetura / Architecture
-
-O projeto adota uma arquitetura monorepo simplificada e desacoplada:
+O **CausalForge** força uma jornada analítica explícita:
 
 ```text
-CausalForge/
-├── apps/
-│   ├── web/                         # Frontend Next.js (App Router)
-│   │   ├── app/                     # Páginas e estilos
-│   │   ├── components/              # UI (em evolução)
-│   │   ├── lib/                     # API client
-│   │   └── types/                   # Tipos TypeScript
-│   │
-│   └── api/                         # Backend FastAPI
-│       ├── app/
-│       │   ├── api/                 # Endpoints (/demo, /estimate, /methodology)
-│       │   ├── models/              # Schemas Pydantic
-│       │   └── services/            # Demo data + estimators
-│       └── tests/                   # Testes do pipeline (pytest)
-│
-├── data/
-│   └── seed/                        # Painel sintético ops_intervention_demo.csv
-│
-├── docs/                            # Pitch, metodologia e roadmap
-├── assets/                          # Ícone, hero, architecture e screenshots
-├── scripts/                         # Geração de assets
-├── start.bat                        # Inicializador integrado Windows
-└── README.md                        # Esta documentação
+Caso sintético → Pergunta causal → Hipóteses → Método → Evidência (ATT + IC) → Decision memo + caveats
 ```
+
+Dois casos controlados ensinam o contraste certo:
+
+| Caso | Método sugerido | Sinal esperado |
+|---|---|---|
+| Campanha promocional (varejo) | Diff-in-Diff | **SUGGESTIVE** (ATT ≈ +35 no DGP) |
+| Coaching de SLA (suporte) | Matching | **INCONCLUSIVE** com frequência (ruído residual) |
+
+Rótulos de produto (contrato):
+
+- **SUGGESTIVE** — IC 95% exclui zero *sob hipóteses declaradas* (ainda **não** é prova).
+- **INCONCLUSIVE** — IC inclui zero → **não** reivindique impacto.
+
+> **Responsible Causal Notice**  
+> Estimativas observacionais dependem de pressupostos. CausalForge reporta efeito com incerteza e limites. Não substitui RCT nem julgamento de domínio. Não automatiza decisões sobre pessoas.
 
 ---
 
-## 🧱 Visual Architecture
+## Principais funcionalidades
+
+- **Case picker** — dois demos sintéticos com narrativa de negócio
+- **Assumption checklist** — parallel trends / unconfoundedness / overlap / SUTVA
+- **Effect estimator** — DiD simples ou matching NN com covariáveis **z-scored**
+- **Uncertainty panel** — SE, IC 95%, flag `crosses_zero`
+- **Decision memo** — texto executivo + limitations + caveats + disclaimer
+- **Degraded mode** — UI navegável se a API estiver offline (estimativa bloqueada)
 
 <p align="center">
-  <img src="./assets/architecture-pipeline.png" alt="CausalForge visual architecture" width="100%" />
+  <img src="./assets/screenshots/05-decision-memo.png" alt="Decision memo" width="90%" />
 </p>
 
-CausalForge follows a traceable causal flow: question and intervention enter the lab, assumptions are declared, a method estimates impact with uncertainty, and a decision memo closes the loop with explicit limitations.
-
 ---
 
-## 🔁 Data Flow Pipeline
+## Arquitetura
 
-```txt
-Synthetic Panel / Optional Upload
-  ↓
-Causal Question + Intervention Selection
-  ↓
-Assumption Checklist
-  ↓
-Estimator (DiD or Matching)
-  ↓
-ATT + Standard Error + 95% CI
-  ↓
-Decision Memo / Limitations / Executive Report
+```text
+Browser (Next.js apps/web)
+        │  NEXT_PUBLIC_API_URL
+        ▼
+FastAPI (apps/api)
+  /api/cases · /api/demo · /api/estimate · /api/methodology
+        │
+        ▼
+demo_data.py  →  estimators.py (DiD + standardized matching)
+        │
+        ▼
+data/seed/*.csv  (synthetic ground truth)
 ```
 
+Detalhes: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) · [docs/TECHNICAL_DECISIONS.md](./docs/TECHNICAL_DECISIONS.md)
+
+### Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Next.js 15, React 19, TypeScript |
+| Backend | FastAPI, Pydantic v2, Uvicorn |
+| Analytics | Pandas, NumPy, SciPy |
+| Deploy | Vercel (web) + Vercel Python (API) |
+| Qualidade | Pytest, Ruff, ESLint, tsc, GitHub Actions |
+
 ---
 
-## 🚀 Quick Start / Início Rápido
+## Quick Start
 
 ### Pré-requisitos
-- **Node.js** v20 ou superior.
-- **Python** v3.10 ou superior (preferencialmente Python 3.12).
-- **Git**
 
-### Opção 1 — Execução integrada no Windows
-Na pasta raiz do projeto, dê dois cliques ou execute no console:
+- Node.js 20+
+- Python 3.12+
+- Git
+
+### Opção A — Windows integrado
+
 ```bash
 start.bat
 ```
-Este script inicializa o ambiente virtual Python (`apps/api/.venv`), instala dependências, sobe o backend FastAPI na porta `8000`, o frontend Next.js na porta `3000` e abre a aplicação no navegador.
 
-### Opção 2 — Execução manual
+### Opção B — Manual
 
-#### 1. Backend FastAPI (`apps/api`)
+**API**
+
 ```bash
 cd apps/api
 python -m venv .venv
-.venv\Scripts\activate            # Windows
-source .venv/bin/activate          # Linux/macOS
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # Linux/macOS
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
-*API ativa em [http://127.0.0.1:8000](http://127.0.0.1:8000). Docs interativos em `/docs`.*
 
-#### 2. Frontend Next.js (`apps/web`)
+**Web**
+
 ```bash
 cd apps/web
-npm install
+npm ci
+set NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
 npm run dev
 ```
-*Frontend ativo em [http://localhost:3000](http://localhost:3000).*
+
+- Web: http://localhost:3000  
+- API docs: http://127.0.0.1:8000/docs  
+
+### Variáveis de ambiente
+
+Copie [.env.example](./.env.example):
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+Nunca commite `.env`, `.env.local` ou tokens Vercel/OIDC.
 
 ---
 
-## 🧪 Scripts e Testes / Scripts and Testing
+## Testes
 
-### Rodar Testes de Backend (FastAPI/Pytest)
 ```bash
+# API
 cd apps/api
 .venv\Scripts\python -m pytest
-```
+.venv\Scripts\ruff check app tests
 
-### Validações de Frontend (Next.js)
-```bash
+# Web
 cd apps/web
-npm run lint         # Verificação de lint
-npm run typecheck    # Verificação estrita de TypeScript
-npm run build        # Compilação de produção
+npm run typecheck
+npm run lint
+npm run build
 ```
 
-### Gerar assets visuais
-```bash
-pip install pillow
-python scripts/generate_assets.py
-```
+Guia: [docs/TESTING.md](./docs/TESTING.md)
 
 ---
 
-## 📊 Metodologia Estatística / Statistical Methodology
+## Decisões técnicas e trade-offs
 
-O CausalForge MVP utiliza estimadores clássicos com foco em transparência:
-* **Difference-in-Differences (simples):** ATT = (Y_post^T − Y_pre^T) − (Y_post^C − Y_pre^C), sob parallel trends.
-* **Matching nearest-neighbor:** pareamento 1:1 em `store_size` e `baseline_traffic` no período post.
-* **Incerteza:** erro-padrão conservador e intervalo de confiança aproximado de 95%.
-* **Comunicação:** checklist de hipóteses + limitações + decision memo em todo resultado.
+| Decisão | Trade-off |
+|---|---|
+| Labels `suggestive`/`inconclusive` em vez de “winner” | Menos marketing; mais rigor |
+| Dual Vercel (web + API) | CORS + cold start SciPy |
+| Seeds sintéticos only | Sem PII; não é plataforma de produção |
+| Z-score antes do matching | Ainda sem propensity / overlap diagnostics |
+| Sem DoWhy/EconML no MVP | Bundle menor; menos “magia” |
 
-Detalhes em [docs/technical_methodology.md](./docs/technical_methodology.md).
-
----
-
-## 🛡️ Segurança, Ética e Boas Práticas
-
-* **Sem causalidade automática:** o produto recusa a narrativa de “um clique = prova causal”.
-* **Dados sintéticos no demo:** o seed é controlado para validar métodos sem PII real.
-* **Limitações sempre visíveis:** cada estimativa carrega disclaimer e restrições de interpretação.
-* **Fora de escopo:** decisões automatizadas sobre indivíduos; discovery causal mágico; overclaim de impacto.
+Mais: [docs/TECHNICAL_DECISIONS.md](./docs/TECHNICAL_DECISIONS.md) · metodologia: [docs/technical_methodology.md](./docs/technical_methodology.md)
 
 ---
 
-## 🧭 Roadmap do Produto
+## Roadmap
 
-* **MVP:** dataset sintético, DiD simples, matching básico, checklist, uncertainty panel e decision memo.
-* **Fase 2:** propensity score, DAG visual, placebo tests, sensitivity analysis e comparação de métodos.
-* **Fase 3:** notebooks reproduzíveis, API de experimentos, integração com métricas reais e biblioteca de estudos de caso.
-
-Veja [docs/product_roadmap.md](./docs/product_roadmap.md).
+- **MVP (agora):** 2 casos, DiD, matching padronizado, memo, CI, deploy
+- **Fase 2:** propensity score, DAG, placebo/pre-trends, sensitivity, method compare
+- **Fase 3:** notebooks, experiment API, case library, métricas reais (com governança)
 
 ---
 
-## 💼 Valor para Portfólio / Portfolio Value
+## O que este projeto demonstra
 
-O CausalForge demonstra competências críticas para funções de **Data Science, Analytics Engineering e Product Analytics**:
-- **Inferência causal aplicada:** DiD, matching, contrafactual e viés.
-- **Comunicação executiva:** decision memo com incerteza e limites.
-- **Responsabilidade analítica:** ética e anti-overclaim.
-- **Arquitetura full-stack:** Next.js 15 + FastAPI em monorepo.
-
----
-
-## 📚 Documentação Complementar
-
-- [docs/portfolio_pitch.md](./docs/portfolio_pitch.md) — roteiros de entrevista e pitch.
-- [docs/technical_methodology.md](./docs/technical_methodology.md) — lógica estatística do MVP.
-- [docs/product_roadmap.md](./docs/product_roadmap.md) — fases MVP → 2 → 3.
+- Inferência causal aplicada (DiD, matching, contrafactual, viés)
+- Comunicação de **incerteza** e **limites** como feature de produto
+- Responsible analytics (anti-overclaim)
+- Full-stack: Next.js + FastAPI monorepo
+- Testes de regressão no DGP sintético (~+35 ATT)
+- Deploy dual Vercel com CORS e modo degradado
 
 ---
 
-## 🖼️ GitHub Social Preview
+## Como eu apresentaria em entrevista
 
-Uma imagem para visualização social está disponível em:
-```txt
-assets/social-preview.png
-```
-*Dimensão recomendada: 1280x640, <1MB. Faça upload em: Repository Settings → Social Preview.*
+1. **Problema de negócio:** “Times tratam lift de dashboard como prova causal.”
+2. **Contrato do produto:** “Eu forço hipóteses antes do número e rotulo evidência como suggestive ou inconclusive.”
+3. **Demo ao vivo:** caso promo (sinal claro) vs SLA (intervalo cruza zero) — o segundo caso é o diferencial pedagógico.
+4. **Rigor técnico:** “Matching z-scored; SE de DiD usa `unit_id`/`agent_id` quando existe; disclaimer sempre presente.”
+5. **Limite honesto:** “MVP não faz propensity, placebo nem sensitivity — e eu documentei isso de propósito.”
+6. **Próximo passo:** “Se fosse produção, eu adicionaria pre-trends, balance tables e design review antes de qualquer scale-up.”
 
----
-
-## 🔖 GitHub Repository Metadata
-
-### About sugerido
-```txt
-Applied causal inference lab for business interventions — Diff-in-Diff, matching, uncertainty and decision memos with declared limitations.
-```
-
-### Topics sugeridos
-```txt
-causal-inference
-difference-in-differences
-matching
-statistics
-fastapi
-nextjs
-typescript
-python
-scipy
-statsmodels
-responsible-analytics
-portfolio-project
-ab-testing
-observational-data
-decision-memo
-```
+Roteiro extra: [docs/portfolio_pitch.md](./docs/portfolio_pitch.md)
 
 ---
 
-## 👤 Autor / Author
+## Documentação
 
-Desenvolvido por **Felipe Alirio Baruja**.
-
-- **Portfolio:** [barujafe.vercel.app](https://barujafe.vercel.app/)
-- **GitHub:** [@BarujaFe1](https://github.com/BarujaFe1)
-- **LinkedIn:** [Gustavo Felipe Alirio Baruja](https://www.linkedin.com/in/barujafe/)
+| Doc | Conteúdo |
+|---|---|
+| [docs/AUDIT_REPORT.md](./docs/AUDIT_REPORT.md) | Auditoria do quality pass |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitetura |
+| [docs/TECHNICAL_DECISIONS.md](./docs/TECHNICAL_DECISIONS.md) | ADRs |
+| [docs/TESTING.md](./docs/TESTING.md) | Testes |
+| [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) | Deploy Vercel |
+| [docs/HANDOFF.md](./docs/HANDOFF.md) | Handoff do quality pass |
+| [docs/technical_methodology.md](./docs/technical_methodology.md) | Matemática do MVP |
 
 ---
 
-## 📄 Licença / License
+## Autor
 
-MIT License. Copyright (c) 2026 Felipe Alirio Baruja.
-O código está disponível sob a licença MIT caso o arquivo `LICENSE` esteja presente no repositório.
+**Felipe Alirio Baruja**
+
+- Portfolio: [barujafe.vercel.app](https://barujafe.vercel.app/)
+- GitHub: [@BarujaFe1](https://github.com/BarujaFe1)
+- LinkedIn: [Gustavo Felipe Alirio Baruja](https://www.linkedin.com/in/barujafe/)
+- Projeto no portfólio: `/projetos/causal-forge`
+
+---
+
+## Licença
+
+MIT License © 2026 Felipe Alirio Baruja

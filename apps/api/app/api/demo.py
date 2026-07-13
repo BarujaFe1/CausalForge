@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.services.demo_data import list_cases, load_demo_summary
 
@@ -14,4 +14,9 @@ async def demo_cases():
 @router.get("/demo")
 async def demo_dataset(case_id: str = Query(default="promo_campaign")):
     """Return summary of a synthetic demo dataset."""
-    return load_demo_summary(case_id)
+    try:
+        return load_demo_summary(case_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
